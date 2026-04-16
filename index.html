@@ -1,43 +1,42 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>To-Do List</title>
-
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <title>To-Do List</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <div class="container">
-    <h2>To-Do List</h2>
+    <h1>To-Do List</h1>
 
-    <input type="text" id="taskInput" placeholder="Digite a tarefa">
-    
-    <select id="priority">
-        <option value="alta">Alta</option>
-        <option value="media">Média</option>
-        <option value="baixa">Baixa</option>
-    </select>
+    <button id="themeToggle">Modo Escuro</button>
 
-    <button onclick="addTask()">Adicionar</button>
+    <div class="form">
+        <input type="text" id="taskInput" placeholder="Digite a tarefa...">
 
-    <div class="filters">
-        <select id="filterPriority" onchange="renderTasks()">
-            <option value="todas">Todas</option>
+        <select id="priority">
             <option value="alta">Alta</option>
             <option value="media">Média</option>
             <option value="baixa">Baixa</option>
         </select>
 
-        <select id="filterStatus" onchange="renderTasks()">
+        <input type="datetime-local" id="dateTime">
+
+        <button onclick="addTask()">Adicionar</button>
+    </div>
+
+    <div class="filters">
+        <select id="filter" onchange="renderTasks()">
             <option value="todas">Todas</option>
-            <option value="pendentes">Pendentes</option>
+            <option value="alta">Alta</option>
+            <option value="media">Média</option>
+            <option value="baixa">Baixa</option>
             <option value="concluidas">Concluídas</option>
         </select>
     </div>
 
-    <div id="taskList"></div>
+    <ul id="taskList"></ul>
 </div>
 
 <script>
@@ -50,22 +49,31 @@ function saveTasks() {
 function addTask() {
     const text = document.getElementById("taskInput").value;
     const priority = document.getElementById("priority").value;
+    const dateTime = document.getElementById("dateTime").value;
 
-    if (text.trim() === "") return;
+    if (!text) return;
 
     tasks.push({
         text,
         priority,
-        completed: false
+        dateTime,
+        done: false
     });
 
-    document.getElementById("taskInput").value = "";
+    sortTasks();
     saveTasks();
     renderTasks();
+
+    document.getElementById("taskInput").value = "";
 }
 
-function toggleTask(index) {
-    tasks[index].completed = !tasks[index].completed;
+function sortTasks() {
+    const order = { alta: 1, media: 2, baixa: 3 };
+    tasks.sort((a, b) => order[a.priority] - order[b.priority]);
+}
+
+function toggleDone(index) {
+    tasks[index].done = !tasks[index].done;
     saveTasks();
     renderTasks();
 }
@@ -76,42 +84,59 @@ function deleteTask(index) {
     renderTasks();
 }
 
-function sortTasks(list) {
-    const order = { alta: 1, media: 2, baixa: 3 };
-    return list.sort((a, b) => order[a.priority] - order[b.priority]);
+function editTask(index) {
+    const newText = prompt("Editar tarefa:", tasks[index].text);
+    if (newText !== null) {
+        tasks[index].text = newText;
+        saveTasks();
+        renderTasks();
+    }
 }
 
 function renderTasks() {
     const list = document.getElementById("taskList");
+    const filter = document.getElementById("filter").value;
+
     list.innerHTML = "";
 
-    const filterPriority = document.getElementById("filterPriority").value;
-    const filterStatus = document.getElementById("filterStatus").value;
+    tasks.forEach((task, index) => {
 
-    let filtered = tasks.filter(task => {
-        return (filterPriority === "todas" || task.priority === filterPriority) &&
-               (filterStatus === "todas" ||
-               (filterStatus === "concluidas" && task.completed) ||
-               (filterStatus === "pendentes" && !task.completed));
-    });
+        if (filter !== "todas") {
+            if (filter === "concluidas" && !task.done) return;
+            if (filter !== "concluidas" && task.priority !== filter) return;
+        }
 
-    filtered = sortTasks(filtered);
+        const li = document.createElement("li");
+        li.className = `${task.priority} ${task.done ? "done" : ""}`;
 
-    filtered.forEach((task, index) => {
-        const div = document.createElement("div");
-        div.className = `task ${task.priority} ${task.completed ? "completed" : ""}`;
+        li.innerHTML = `
+            <span>
+                ${task.text} <br>
+                <small>${task.dateTime || ""}</small>
+            </span>
 
-        div.innerHTML = `
-            <span>${task.text}</span>
-            <div class="actions">
-                <button onclick="toggleTask(${index})">✔</button>
-                <button onclick="deleteTask(${index})">✖</button>
+            <div>
+                <button onclick="toggleDone(${index})">✔</button>
+                <button onclick="editTask(${index})">✏</button>
+                <button onclick="deleteTask(${index})">🗑</button>
             </div>
         `;
 
-        list.appendChild(div);
+        list.appendChild(li);
     });
 }
+
+const themeToggle = document.getElementById("themeToggle");
+
+themeToggle.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+
+    if (document.body.classList.contains("dark")) {
+        themeToggle.textContent = "Modo Claro";
+    } else {
+        themeToggle.textContent = "Modo Escuro";
+    }
+});
 
 renderTasks();
 </script>
